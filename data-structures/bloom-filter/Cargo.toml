@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 bitvec = "1.0.1"
 prettytable-rs = "0.10.0"
+seahash = "4.1.0"

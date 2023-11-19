@@ -2,12 +2,13 @@ use prettytable::{Row, Table};
 
 pub mod bloom_filter;
 pub mod bloom_filters;
-use bloom_filter::BloomFilter;
 
-use crate::bloom_filters::bloom_filters_32_arr::BloomFilter32;
+use bloom_filter::BloomFilter;
+// use bloom_filters::bloom_filter_32_arr;
 
 fn main() {
-    let mut bl = BloomFilter32::default();
+    // let mut bl = bloom_filter_32_arr::BloomFilter32::default();
+    let mut bl = bloom_filters::bloom_filter_prod::BloomFilterProd::new(10, 0.01);
 
     bloomy(&mut bl);
 
