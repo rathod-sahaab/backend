@@ -1,5 +1,8 @@
+use std::isize;
+
 use crate::consistent_hash_ring::ConsitentHashRing;
 
+#[derive(Clone)]
 struct CHRVecNode<ConsumerInfo>
 where
     ConsumerInfo: Clone,
@@ -11,6 +14,7 @@ where
     data: ConsumerInfo,
 }
 
+/// Consistent Hash Ring implementation using vector
 struct CHRVec<ConsumerInfo>
 where
     ConsumerInfo: Clone,
@@ -33,6 +37,45 @@ where
     fn hash(key: &str) -> u64 {
         seahash::hash(key.as_bytes())
     }
+
+    fn extend_consumers(
+        &mut self,
+        nodes_to_insert_iter: impl Iterator<Item = CHRVecNode<ConsumerInfo>> + Clone,
+    ) {
+        let prev_len = self.consumers.len();
+        self.consumers.reserve(self.virtual_nodes);
+
+        self.consumers.extend(nodes_to_insert_iter.clone());
+
+        let mut nodes_to_insert = nodes_to_insert_iter.collect::<Vec<_>>();
+        nodes_to_insert.sort_by_key(|node| node.hash);
+
+        let mut nodes_to_insert_index = (self.virtual_nodes - 1) as isize;
+        let mut consumers_index: isize = prev_len as isize - 1;
+
+        for back_index in (0..self.consumers.len()).rev() {
+            self.consumers[back_index] = if consumers_index < 0
+                || (nodes_to_insert_index >= 0
+                    && nodes_to_insert[nodes_to_insert_index as usize].hash
+                        > self.consumers[consumers_index as usize].hash)
+            {
+                let temp = nodes_to_insert_index as usize;
+
+                nodes_to_insert_index -= 1;
+                nodes_to_insert[temp].clone()
+            } else {
+                let temp = consumers_index as usize;
+
+                if temp == back_index {
+                    // already inserted now order won't change from here on
+                    break;
+                }
+
+                consumers_index -= 1;
+                self.consumers[temp].clone()
+            }
+        }
+    }
 }
 
 impl<ConsumerInfo> ConsitentHashRing for CHRVec<ConsumerInfo>
@@ -42,9 +85,7 @@ where
     type ConsumerInfo = ConsumerInfo;
 
     fn add_consumer(&mut self, key: &str, data: Self::ConsumerInfo) {
-        self.consumers.reserve(self.virtual_nodes);
-
-        let nodes_to_insert = (0..self.virtual_nodes).map(|i| {
+        let nodes_to_insert_iter = (0..self.virtual_nodes).map(|i| {
             let key = format!("{}_{}", key, i);
             let hash = Self::hash(&key);
             CHRVecNode {
@@ -53,9 +94,11 @@ where
                 data: data.clone(),
             }
         });
-        self.consumers.extend(nodes_to_insert);
 
-        self.consumers.sort_by_key(|consumer| consumer.hash);
+        // self.consumers.reserve(self.virtual_nodes);
+        // self.consumers.extend(nodes_to_insert_iter);
+        // self.consumers.sort_by_key(|consumer| consumer.hash);
+        self.extend_consumers(nodes_to_insert_iter);
     }
 
     fn remove_consumer(&mut self, key: &str) {
@@ -185,5 +228,34 @@ mod tests {
 
         let consumer = chr.get_consumer("test");
         assert!(consumer.is_some());
+    }
+
+    #[test]
+    fn test_sorted_after_add() {
+        let mut chr = CHRVec::<ServerInfo>::new(12); // abnormally large to test easily
+
+        chr.add_consumer(
+            "local",
+            ServerInfo {
+                ip: IP::IpV4((127, 0, 0, 1)),
+                port: 8080,
+            },
+        );
+        chr.add_consumer(
+            "remote",
+            ServerInfo {
+                ip: IP::IpV4((1, 1, 1, 1)),
+                port: 443,
+            },
+        );
+
+        let hashes = chr
+            .consumers
+            .iter()
+            .map(|node| node.hash)
+            .collect::<Vec<_>>();
+
+        // check if sorted
+        assert!(hashes.windows(2).all(|w| w[0] <= w[1]));
     }
 }
