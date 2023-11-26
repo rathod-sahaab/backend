@@ -54,25 +54,21 @@ where
         let mut consumers_index: isize = prev_len as isize - 1;
 
         for back_index in (0..self.consumers.len()).rev() {
-            self.consumers[back_index] = if consumers_index < 0
+            if consumers_index < 0
                 || (nodes_to_insert_index >= 0
                     && nodes_to_insert[nodes_to_insert_index as usize].hash
                         > self.consumers[consumers_index as usize].hash)
             {
-                let temp = nodes_to_insert_index as usize;
-
+                self.consumers[back_index] = nodes_to_insert.pop().unwrap();
                 nodes_to_insert_index -= 1;
-                nodes_to_insert[temp].clone()
             } else {
-                let temp = consumers_index as usize;
-
-                if temp == back_index {
+                if consumers_index as usize == back_index {
                     // already inserted now order won't change from here on
                     break;
                 }
 
+                self.consumers.swap(consumers_index as usize, back_index);
                 consumers_index -= 1;
-                self.consumers[temp].clone()
             }
         }
     }
