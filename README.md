@@ -2,5 +2,5 @@
 Knowledge of backend expressed in Rust
 
 # Datastructures
-- [ ] bloom filter
-- [ ] consitent hashing/hash ring
+- [x] bloom filter
+- [x] consitent hashing/hash ring
