@@ -1,6 +1,6 @@
 pub trait BloomFilter {
     fn insert(&mut self, key: &str);
 
-    /// maybe yes, definitely no
+    /// probably yes, definitely no.
     fn contains(&self, key: &str) -> bool;
 }

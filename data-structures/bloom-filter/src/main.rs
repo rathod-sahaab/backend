@@ -23,10 +23,7 @@ fn bloomy(bl: &mut impl BloomFilter) {
 
     test_keys.extend(keys);
 
-    let results = test_keys
-        .iter()
-        .map(|&key| bl.contains(key))
-        .collect::<Vec<bool>>();
+    let results = test_keys.iter().map(|&key| bl.contains(key));
 
     // table output
     let mut table = Table::new();

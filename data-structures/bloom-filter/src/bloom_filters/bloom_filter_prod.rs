@@ -12,9 +12,8 @@ impl BloomFilterProd {
     pub fn new(elements: usize, false_probability: f32) -> Self {
         let log2 = 2f32.ln();
 
-        // m = -n * ln(p) / ln(2)^2
-        let bit_count =
-            -((elements as f32 * false_probability.ln()) / log2.powi(2)).ceil() as usize;
+        // m = -n * log2(p) / ln(2)
+        let bit_count = -((elements as f32 * false_probability.log2()) / log2).ceil() as usize;
         // k = m/n * ln(2)
         let hash_count = (bit_count as f32 / elements as f32 * log2).ceil() as usize;
 
